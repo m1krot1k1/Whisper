@@ -296,10 +296,20 @@ start_development_server() {
         set +a
     fi
     
-    if [ -n "$args" ]; then
-        eval "whisperlivekit-server$args" 2>&1 | grep -v "NNPACK.cpp:56"
+    # Check if adaptive server should be used
+    if [ "$WLK_USE_ADAPTIVE_SERVER" = "true" ]; then
+        print_status "Starting adaptive server with context correction..."
+        if [ -n "$args" ]; then
+            eval "python3 -m whisperlivekit.adaptive_basic_server$args" 2>&1 | grep -v "NNPACK.cpp:56"
+        else
+            python3 -m whisperlivekit.adaptive_basic_server 2>&1 | grep -v "NNPACK.cpp:56"
+        fi
     else
-        whisperlivekit-server 2>&1 | grep -v "NNPACK.cpp:56"
+        if [ -n "$args" ]; then
+            eval "whisperlivekit-server$args" 2>&1 | grep -v "NNPACK.cpp:56"
+        else
+            whisperlivekit-server 2>&1 | grep -v "NNPACK.cpp:56"
+        fi
     fi
 }
 
