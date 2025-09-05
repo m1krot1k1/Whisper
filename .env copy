@@ -377,6 +377,11 @@ export TORCH_USE_QNNPACK=0
 export TORCH_SHOW_CPP_STACKTRACES=0
 export TORCH_USE_CUDA_DSA=0
 
+# Дополнительные переменные для отключения NNPACK
+export TORCH_USE_NNPACK_ONLY=0
+export TORCH_USE_QNNPACK_ONLY=0
+export TORCH_USE_MKLDNN=0
+
 # Принудительно использовать CPU для Whisper
 export WHISPER_CUDA=0
 export WHISPER_DEVICE=cpu

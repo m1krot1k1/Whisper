@@ -288,11 +288,11 @@ start_development_server() {
     print_status "Command: whisperlivekit-server$args"
     echo ""
     
-    # Execute the command
+    # Execute the command with stderr filtering to remove NNPACK warnings
     if [ -n "$args" ]; then
-        eval "whisperlivekit-server$args"
+        eval "whisperlivekit-server$args" 2>&1 | grep -v "NNPACK.cpp:56"
     else
-        whisperlivekit-server
+        whisperlivekit-server 2>&1 | grep -v "NNPACK.cpp:56"
     fi
 }
 
