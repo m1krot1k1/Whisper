@@ -63,7 +63,7 @@ WLK_MODEL_CACHE_DIR=./models
 
 # Директория модели (переопределяет --model и --model_cache_dir)
 # Используйте, если у вас уже есть загруженная модель в конкретной папке
-WLK_MODEL_DIR=./models/whisper-small
+# WLK_MODEL_DIR=./models/whisper-small
 
 # =================================================================
 # АВТОМАТИЧЕСКИ ЗАГРУЖАЕМЫЕ МОДЕЛИ
@@ -231,9 +231,9 @@ WLK_AUDIO_MIN_LEN=0.0
 # Путь к модели CIF для обнаружения конца слов
 # Помогает определять, когда обрезать неполные слова
 # Модели доступны на: https://github.com/backspacetg/simul_whisper/tree/main/cif_models
-# Автоматически используется соответствующая модель для large-v2
+# Автоматически используется соответствующая модель для small
 # Оставить пустым, если CIF модель недоступна
-WLK_CIF_CKPT_PATH=./models/cif/cif_large.ckpt
+# WLK_CIF_CKPT_PATH=./models/cif/small.pt
 # WLK_CIF_CKPT_PATH=
 
 # Никогда не обрезать неполные слова (переопределяет CIF модель)
