@@ -1,12 +1,59 @@
-# Byte-compiled / optimized / DLL files
+# WhisperLiveKit .gitignore
+
+# =================================================================
+# МОДЕЛИ И КЭШИ
+# =================================================================
+
+# Локальная папка с загруженными моделями
+models/
+*.pt
+*.bin
+*.onnx
+*.ckpt
+
+# Кэши HuggingFace
+.cache/
+*/.cache/
+
+# Кэши PyTorch
+torch_cache/
+.torch/
+
+# Временные файлы моделей
+*.tmp
+*.download
+
+# =================================================================
+# КОНФИГУРАЦИЯ И ЛОГИ
+# =================================================================
+
+# Файлы конфигурации (содержат токены и пароли)
+.env
+.env.local
+.env.production
+.env.staging
+
+# Логи
+logs/
+*.log
+gunicorn.pid
+
+# =================================================================
+# PYTHON И ВИРТУАЛЬНЫЕ ОКРУЖЕНИЯ
+# =================================================================
+
+# Виртуальные окружения
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+# Кэши Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -20,22 +67,14 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
 
 # Unit test / coverage reports
 htmlcov/
@@ -47,94 +86,175 @@ htmlcov/
 nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
 .hypothesis/
 .pytest_cache/
 
-# Translations
-*.mo
-*.pot
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
+# =================================================================
+# IDE И РЕДАКТОРЫ
+# =================================================================
 
-# Flask stuff:
-instance/
-.webassets-cache
+# Visual Studio Code
+.vscode/
+*.code-workspace
 
-# Scrapy stuff:
-.scrapy
+# PyCharm
+.idea/
+*.iml
+*.iws
 
-# Sphinx documentation
-docs/_build/
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
 
-# PyBuilder
-target/
+# Vim
+*.swp
+*.swo
+*~
 
-# Jupyter Notebook
+# Emacs
+*~
+\#*\#
+.\#*
+
+# =================================================================
+# ОПЕРАЦИОННЫЕ СИСТЕМЫ
+# =================================================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# =================================================================
+# АУДИО И МЕДИА ФАЙЛЫ
+# =================================================================
+
+# Временные аудио файлы
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+*.webm
+*.mp4
+*.avi
+temp_audio/
+audio_cache/
+
+# =================================================================
+# БЕЗОПАСНОСТЬ
+# =================================================================
+
+# SSL сертификаты
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Приватные ключи
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.pri
+
+# =================================================================
+# РАЗРАБОТКА И ТЕСТИРОВАНИЕ
+# =================================================================
+
+# Временные файлы
+tmp/
+temp/
+*.tmp
+
+# Backup файлы
+*.bak
+*.backup
+*.old
+
+# Jupyter Notebook checkpoints
 .ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
 
 # pyenv
 .python-version
 
 # pipenv
-#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
-#   However, in case of collaboration, if having platform-specific dependencies or dependencies
-#   having no cross-platform support, pipenv may install dependencies that don't work, or not
-#   install all needed dependencies.
-#Pipfile.lock
+Pipfile.lock
 
-# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+# PEP 582
 __pypackages__/
 
-# Celery stuff
+# Celery
 celerybeat-schedule
 celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
+# =================================================================
+# DOCKER И КОНТЕЙНЕРЫ
+# =================================================================
 
-# Spyder project settings
-.spyderproject
-.spyproject
+# Docker
+.dockerignore
+docker-compose.override.yml
 
-# Rope project settings
-.ropeproject
+# =================================================================
+# CI/CD И ДЕПЛОЙ
+# =================================================================
 
-# mkdocs documentation
-/site
+# GitHub Actions
+.github/workflows/secrets.yml
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
 
-# Pyre type checker
-.pyre/
+# Ansible
+*.retry
 
-*.wav
-run_*.sh
+# =================================================================
+# СПЕЦИФИЧНЫЕ ДЛЯ ПРОЕКТА
+# =================================================================
 
-# Downloaded models
-*.pt 
+# Пользовательские тесты
+user_tests/
+my_tests/
 
-# Debug & testing
-test_*.py
-launch.json
-.DS_Store
-test/*
+# Данные пользователей
+user_data/
+uploads/
+
+# Статистика и метрики
+stats/
+metrics/
