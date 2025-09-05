@@ -12,7 +12,7 @@
 WLK_HOST=localhost
 
 # Порт сервера (1024-65535)
-# Рекомендуется: 8000 для разработки, 80/443 для продакшена
+# Рекомендуется: 8 000 для разработки, 80/443 для продакшена
 WLK_PORT=8000
 
 # SSL конфигурация (опционально, для HTTPS)
@@ -160,31 +160,31 @@ WLK_BUFFER_TRIMMING_SEC=3
 # Включить идентификацию голосов (диаризацию)
 # Позволяет различать разных говорящих в реальном времени
 # Требует дополнительных вычислительных ресурсов
-# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
-WLK_DIARIZATION=false
+# ВКЛЮЧЕНО ДЛЯ РАБОТЫ С ДИАРИЗАЦИЕЙ
+WLK_DIARIZATION=true
 
-# Бэкенд диаризации (отключено)
+# Бэкенд диаризации (включено)
 # diart - более старый, стабильный (требует HF токен)
 # sortformer - новый, более точный (не работает с CUDA)
-# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
-# WLK_DIARIZATION_BACKEND=diart
+# ВКЛЮЧЕНО ДЛЯ РАБОТЫ С ДИАРИЗАЦИЕЙ
+WLK_DIARIZATION_BACKEND=diart
 
-# Модель сегментации для Diart (отключено)
+# Модель сегментации для Diart (включено)
 # Требует подтверждения лицензии на Hugging Face
-# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
-# WLK_SEGMENTATION_MODEL=pyannote/segmentation-3.0
+# ВКЛЮЧЕНО ДЛЯ РАБОТЫ С ДИАРИЗАЦИЕЙ
+WLK_SEGMENTATION_MODEL=pyannote/segmentation-3.0
 
-# Модель эмбеддингов для Diart (отключено)
-# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
-# WLK_EMBEDDING_MODEL=speechbrain/spkrec-ecapa-voxceleb
+# Модель эмбеддингов для Diart (включено)
+# ВКЛЮЧЕНО ДЛЯ РАБОТЫ С ДИАРИЗАЦИЕЙ
+WLK_EMBEDDING_MODEL=speechbrain/spkrec-ecapa-voxceleb
 
-# Hugging Face токен (отключено)
-# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
-# HUGGINGFACE_HUB_TOKEN=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
+# Hugging Face токен (включено)
+# ВКЛЮЧЕНО ДЛЯ РАБОТЫ С ДИАРИЗАЦИЕЙ
+HUGGINGFACE_HUB_TOKEN=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
 
-# Использовать пунктуацию (отключено)
-# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
-# WLK_PUNCTUATION_SPLIT=true
+# Использовать пунктуацию (включено)
+# ВКЛЮЧЕНО ДЛЯ РАБОТЫ С ДИАРИЗАЦИЕЙ
+WLK_PUNCTUATION_SPLIT=true
 
 # =================================================================
 # НАСТРОЙКИ SIMULSTREAMING БЭКЕНДА
