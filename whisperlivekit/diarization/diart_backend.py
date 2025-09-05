@@ -4,6 +4,7 @@ import threading
 import numpy as np
 import logging
 import time
+import os
 from queue import SimpleQueue, Empty
 
 from diart import SpeakerDiarization, SpeakerDiarizationConfig
@@ -167,6 +168,14 @@ class WebSocketAudioSource(AudioSource):
 
 class DiartDiarization:
     def __init__(self, sample_rate: int = 16000, config : SpeakerDiarizationConfig = None, use_microphone: bool = False, block_duration: float = 1.5, segmentation_model_name: str = "pyannote/segmentation-3.0", embedding_model_name: str = "pyannote/embedding"):
+        # Get Hugging Face token from environment
+        hf_token = os.getenv('HUGGINGFACE_HUB_TOKEN')
+        if not hf_token:
+            logger.warning("HUGGINGFACE_HUB_TOKEN not found in environment variables")
+        else:
+            # Set the token in environment for pyannote models
+            os.environ['HF_TOKEN'] = hf_token
+        
         segmentation_model = m.SegmentationModel.from_pretrained(segmentation_model_name)
         embedding_model = m.EmbeddingModel.from_pretrained(embedding_model_name)
         
