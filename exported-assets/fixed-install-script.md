@@ -1,3 +1,16 @@
+# Исправленный install.sh для WhisperLiveKit
+
+## Проблемы в текущем скрипте установки
+
+### Обнаруженные проблемы:
+1. **Избыточные зависимости**: Установка NeMo toolkit может вызвать конфликты
+2. **Неправильная установка CUDA**: Скрипт устанавливает старую версию CUDA 11.8
+3. **Конфликты PyTorch**: Переустановка PyTorch может сломать existing установку
+4. **Избыточная конфигурация**: Создает слишком сложную структуру папок
+
+## Оптимизированный скрипт установки
+
+```bash
 #!/bin/bash
 
 # WhisperLiveKit Optimized Installation Script
@@ -10,11 +23,11 @@ echo " WhisperLiveKit Оптимизированная установка"
 echo "=============================================================="
 
 # Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+RED='\\033[0;31m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[1;33m'
+BLUE='\\033[0;34m'
+NC='\\033[0m' # No Color
 
 # Function to print colored output
 print_status() {
@@ -71,7 +84,7 @@ check_gpu() {
             
             # Check CUDA availability
             if command -v nvcc &> /dev/null; then
-                CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release \([0-9]\+\.[0-9]\+\).*/\1/')
+                CUDA_VERSION=$(nvcc --version | grep "release" | sed 's/.*release \\([0-9]\\+\\.[0-9]\\+\\).*/\\1/')
                 print_success "CUDA $CUDA_VERSION установлен"
             else
                 print_warning "CUDA toolkit не найден. Будет использоваться PyTorch CUDA runtime."
@@ -376,3 +389,22 @@ main() {
 
 # Run main function
 main "$@"
+```
+
+## Ключевые улучшения
+
+1. **Упрощенная установка**: Убраны избыточные зависимости
+2. **Лучшая детекция GPU**: Правильная проверка CUDA
+3. **Оптимизированная конфигурация**: Автоматическое создание .env
+4. **Стабильность**: Минимальный набор необходимых пакетов
+5. **Производительность**: Настройки оптимизированы для скорости
+
+## Использование
+
+```bash
+# Сделать исполняемым
+chmod +x install.sh
+
+# Запустить установку
+./install.sh
+```
