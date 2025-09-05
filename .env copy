@@ -369,6 +369,14 @@ export CUDA_LAUNCH_BLOCKING=0
 export PYTHONWARNINGS="ignore::UserWarning"
 export TORCH_WARN_LEVEL="0"
 
+# Отключить NNPACK warnings (библиотека не поддерживается на этом железе)
+export TORCH_USE_NNPACK=0
+export TORCH_USE_QNNPACK=0
+
+# Отключить все предупреждения PyTorch
+export TORCH_SHOW_CPP_STACKTRACES=0
+export TORCH_USE_CUDA_DSA=0
+
 # Принудительно использовать CPU для Whisper
 export WHISPER_CUDA=0
 export WHISPER_DEVICE=cpu
