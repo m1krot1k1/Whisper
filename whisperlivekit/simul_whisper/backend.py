@@ -239,6 +239,13 @@ class SimulStreamingASR():
         self.task = kwargs.get('task', 'transcribe')
         self.cif_ckpt_path = kwargs.get('cif_ckpt_path', None)
         self.never_fire = kwargs.get('never_fire', False)
+        
+        # Auto-detect and download CIF model if needed
+        if self.cif_ckpt_path is None or not self.cif_ckpt_path:
+            self.cif_ckpt_path = self._get_or_download_cif_model(modelsize)
+            if self.cif_ckpt_path is None:
+                logger.warning("No CIF model available for current Whisper model. Using never_fire mode.")
+                self.never_fire = True
         self.init_prompt = kwargs.get('init_prompt', None)
         self.static_init_prompt = kwargs.get('static_init_prompt', None)
         self.max_context_tokens = kwargs.get('max_context_tokens', None)
@@ -308,6 +315,41 @@ class SimulStreamingASR():
                 self.fast_encoder = True
 
         self.models = [self.load_model() for i in range(self.preload_model_count)]
+
+    def _get_or_download_cif_model(self, modelsize):
+        """
+        Get or download the appropriate CIF model for the given Whisper model.
+        
+        Args:
+            modelsize: Whisper model size (e.g., 'large-v2', 'small')
+            
+        Returns:
+            Path to CIF model file or None if not available
+        """
+        try:
+            from whisperlivekit.cif_downloader import CIFDownloader
+            
+            downloader = CIFDownloader()
+            cif_path = downloader.get_cif_model_for_whisper(modelsize)
+            
+            if cif_path:
+                logger.info(f"Found existing CIF model: {cif_path}")
+                return cif_path
+            else:
+                # Try to download the appropriate model
+                logger.info(f"Downloading CIF model for Whisper model: {modelsize}")
+                cif_path = downloader.download_for_whisper_model(modelsize)
+                
+                if cif_path:
+                    logger.info(f"Successfully downloaded CIF model: {cif_path}")
+                    return cif_path
+                else:
+                    logger.warning(f"Failed to download CIF model for {modelsize}")
+                    return None
+                    
+        except Exception as e:
+            logger.error(f"Error handling CIF model: {e}")
+            return None
 
 
     def load_model(self):

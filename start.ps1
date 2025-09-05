@@ -103,11 +103,55 @@ function Import-EnvironmentFile {
     }
 }
 
+function Setup-FFmpegPath {
+    $ffmpegBinPath = Join-Path $PWD "ffmpeg\bin"
+    
+    if (Test-Path $ffmpegBinPath) {
+        Write-Status "Adding FFmpeg to PATH: $ffmpegBinPath"
+        
+        # Check if FFmpeg is already in PATH
+        try {
+            $null = Get-Command ffmpeg -ErrorAction Stop
+            Write-Success "FFmpeg already available in PATH"
+        }
+        catch {
+            # Add FFmpeg to current session PATH
+            $env:PATH = "$ffmpegBinPath;$env:PATH"
+            
+            # Verify FFmpeg is now available
+            try {
+                $null = Get-Command ffmpeg -ErrorAction Stop
+                Write-Success "FFmpeg added to PATH successfully"
+            }
+            catch {
+                Write-Warning "Failed to add FFmpeg to PATH. Audio processing may not work."
+            }
+        }
+    }
+    else {
+        Write-Warning "FFmpeg not found at $ffmpegBinPath"
+        Write-Status "Please run install.ps1 to install FFmpeg automatically"
+        
+        # Check if FFmpeg is available system-wide
+        try {
+            $null = Get-Command ffmpeg -ErrorAction Stop
+            Write-Success "Using system-wide FFmpeg installation"
+        }
+        catch {
+            Write-Error "FFmpeg not found. Audio processing will not work."
+            Write-Status "Please install FFmpeg or run install.ps1"
+        }
+    }
+}
+
 function Enable-VirtualEnvironment {
     if ($NoVenv) {
         Write-Warning "Skipping virtual environment activation as requested"
         return "python"
     }
+    
+    # Set up FFmpeg PATH first
+    Setup-FFmpegPath
     
     if (Test-Path "venv") {
         Write-Status "Activating virtual environment..."
@@ -224,18 +268,97 @@ function Test-Installation {
         exit 1
     }
     
-    # Check FFmpeg
+    # Check and auto-install FFmpeg if needed
+    Install-FFmpegIfNeeded
+}
+
+# Auto-install FFmpeg function for start.ps1
+function Install-FFmpegIfNeeded {
+    Write-Status "Checking FFmpeg installation..."
+    
+    # Check if FFmpeg is already available globally
     try {
-        & ffmpeg -version 2>$null | Out-Null
+        $null = & ffmpeg -version 2>$null
         if ($LASTEXITCODE -eq 0) {
             Write-Success "FFmpeg is available"
+            return
+        }
+    }
+    catch {}
+    
+    # Check if we have local FFmpeg installation
+    $localFFmpegPath = Join-Path $PWD "ffmpeg\bin\ffmpeg.exe"
+    if (Test-Path $localFFmpegPath) {
+        Write-Status "Local FFmpeg installation found"
+        $env:PATH = "$(Join-Path $PWD 'ffmpeg\bin');$env:PATH"
+        Write-Success "FFmpeg added to PATH for current session"
+        return
+    }
+    
+    Write-Warning "FFmpeg not found. Installing FFmpeg automatically..."
+    
+    # Define paths
+    $ffmpegDir = Join-Path $PWD "ffmpeg"
+    $ffmpegBin = Join-Path $ffmpegDir "bin"
+    $tempZip = Join-Path $env:TEMP "ffmpeg_startup.zip"
+    
+    # FFmpeg essentials build URL
+    $ffmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+    
+    try {
+        Write-Status "Downloading FFmpeg essentials build..."
+        Invoke-WebRequest -Uri $ffmpegUrl -OutFile $tempZip -UseBasicParsing
+        
+        Write-Status "Extracting FFmpeg..."
+        
+        # Create ffmpeg directory
+        if (Test-Path $ffmpegDir) {
+            Remove-Item $ffmpegDir -Recurse -Force
+        }
+        New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
+        
+        # Extract the zip file
+        Expand-Archive -Path $tempZip -DestinationPath $env:TEMP -Force
+        
+        # Find the extracted folder
+        $extractedFolder = Get-ChildItem -Path $env:TEMP -Directory | Where-Object { $_.Name -like "ffmpeg-*-essentials_build" } | Select-Object -First 1
+        
+        if ($extractedFolder) {
+            # Copy contents to our ffmpeg directory
+            Copy-Item -Path "$($extractedFolder.FullName)\*" -Destination $ffmpegDir -Recurse -Force
+            
+            # Clean up extracted folder
+            Remove-Item $extractedFolder.FullName -Recurse -Force
         }
         else {
-            Write-Warning "FFmpeg not found. Some features may not work properly."
+            throw "Could not find extracted FFmpeg folder"
+        }
+        
+        # Clean up zip file
+        Remove-Item $tempZip -Force
+        
+        # Verify installation and add to PATH
+        if (Test-Path (Join-Path $ffmpegBin "ffmpeg.exe")) {
+            $env:PATH = "$ffmpegBin;$env:PATH"
+            Write-Success "FFmpeg installed and added to PATH for current session"
+            
+            # Test FFmpeg
+            try {
+                $version = & ffmpeg -version 2>$null | Select-Object -First 1
+                Write-Success "FFmpeg is working: $($version -replace 'ffmpeg version ', '' -split ' ' | Select-Object -First 1)"
+            }
+            catch {
+                Write-Warning "FFmpeg installed but test failed"
+            }
+        }
+        else {
+            throw "FFmpeg executable not found after extraction"
         }
     }
     catch {
-        Write-Warning "FFmpeg not found. Some features may not work properly."
+        Write-Warning "Failed to install FFmpeg automatically: $_"
+        Write-Warning "Some features may not work properly without FFmpeg"
+        Write-Status "You can install FFmpeg manually or run install.ps1 to set it up"
     }
 }
 
@@ -308,22 +431,22 @@ function Show-StartupInfo {
     Write-Host "================================================================" -ForegroundColor $colors.Blue
     Write-Host ""
     Write-Status "Configuration:"
-    Write-Host "  Host: $($env:WLK_HOST ?? 'localhost')"
-    Write-Host "  Port: $($env:WLK_PORT ?? '8000')"
-    Write-Host "  Model: $($env:WLK_MODEL ?? 'small')"
-    Write-Host "  Language: $($env:WLK_LANGUAGE ?? 'auto')"
-    Write-Host "  Backend: $($env:WLK_BACKEND ?? 'simulstreaming')"
-    Write-Host "  Diarization: $($env:WLK_DIARIZATION ?? 'false')"
+    Write-Host "  Host: $(if ($env:WLK_HOST) { $env:WLK_HOST } else { 'localhost' })"
+    Write-Host "  Port: $(if ($env:WLK_PORT) { $env:WLK_PORT } else { '8000' })"
+    Write-Host "  Model: $(if ($env:WLK_MODEL) { $env:WLK_MODEL } else { 'large-v2' })"
+    Write-Host "  Language: $(if ($env:WLK_LANGUAGE) { $env:WLK_LANGUAGE } else { 'auto' })"
+    Write-Host "  Backend: $(if ($env:WLK_BACKEND) { $env:WLK_BACKEND } else { 'simulstreaming' })"
+    Write-Host "  Diarization: $(if ($env:WLK_DIARIZATION) { $env:WLK_DIARIZATION } else { 'false' })"
     Write-Host ""
     
-    $host = $env:WLK_HOST ?? 'localhost'
-    $port = $env:WLK_PORT ?? '8000'
+    $serverHost = if ($env:WLK_HOST) { $env:WLK_HOST } else { 'localhost' }
+    $serverPort = if ($env:WLK_PORT) { $env:WLK_PORT } else { '8000' }
     
     if ($env:WLK_SSL_CERTFILE -and $env:WLK_SSL_KEYFILE) {
-        Write-Status "Server will be available at: https://${host}:${port}"
+        Write-Status "Server will be available at: https://${serverHost}:${serverPort}"
     }
     else {
-        Write-Status "Server will be available at: http://${host}:${port}"
+        Write-Status "Server will be available at: http://${serverHost}:${serverPort}"
     }
     Write-Host ""
 }
@@ -375,21 +498,12 @@ function Main {
     # Set development mode if requested
     if ($Dev) {
         Write-Status "Starting in development mode..."
-        [Environment]::SetEnvironmentVariable("WLK_LOG_LEVEL", ($env:WLK_LOG_LEVEL ?? "DEBUG"), "Process")
+        $logLevel = if ($env:WLK_LOG_LEVEL) { $env:WLK_LOG_LEVEL } else { "DEBUG" }
+        [Environment]::SetEnvironmentVariable("WLK_LOG_LEVEL", $logLevel, "Process")
     }
     
     # Show startup information
     Show-StartupInfo
-    
-    # Set up Ctrl+C handler
-    $handler = {
-        Write-Host ""
-        Write-Status "Shutting down server..."
-        Write-Success "Server stopped"
-        exit 0
-    }
-    
-    [Console]::CancelKeyPress += $handler
     
     # Start the server
     Start-Server

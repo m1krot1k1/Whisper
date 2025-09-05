@@ -242,6 +242,7 @@ function Install-FFmpeg {
     
     Write-Status "Checking FFmpeg installation..."
     
+    # Check if FFmpeg is already available globally
     try {
         $ffmpegVersion = & ffmpeg -version 2>$null | Select-Object -First 1
         if ($LASTEXITCODE -eq 0) {
@@ -250,23 +251,95 @@ function Install-FFmpeg {
         }
     }
     catch {
-        # FFmpeg not found
+        # FFmpeg not found in PATH
     }
     
-    Write-Warning "FFmpeg not found in PATH"
-    Write-Status "FFmpeg is required for WhisperLiveKit to work properly"
-    Write-Status ""
-    Write-Status "To install FFmpeg on Windows:"
-    Write-Status "1. Download from: https://ffmpeg.org/download.html#build-windows"
-    Write-Status "2. Extract the archive"
-    Write-Status "3. Add the 'bin' folder to your PATH environment variable"
-    Write-Status "4. Restart PowerShell/Command Prompt"
-    Write-Status ""
+    # Check if we have local FFmpeg installation
+    $localFFmpegPath = Join-Path $PWD "ffmpeg\bin\ffmpeg.exe"
+    if (Test-Path $localFFmpegPath) {
+        Write-Status "Local FFmpeg installation found"
+        $env:PATH = "$(Join-Path $PWD 'ffmpeg\bin');$env:PATH"
+        Write-Success "FFmpeg added to PATH for current session"
+        return
+    }
     
-    $continue = Read-Host "Continue installation without FFmpeg? (y/N)"
-    if ($continue -notmatch "^[Yy]$") {
-        Write-Status "Installation cancelled. Please install FFmpeg first."
-        exit 1
+    Write-Status "FFmpeg not found. Installing FFmpeg locally..."
+    
+    # Define paths
+    $ffmpegDir = Join-Path $PWD "ffmpeg"
+    $ffmpegBin = Join-Path $ffmpegDir "bin"
+    $tempZip = Join-Path $env:TEMP "ffmpeg.zip"
+    
+    # FFmpeg essentials build URL (latest stable)
+    $ffmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+    
+    try {
+        Write-Status "Downloading FFmpeg essentials build..."
+        Invoke-WebRequest -Uri $ffmpegUrl -OutFile $tempZip -UseBasicParsing
+        Write-Success "FFmpeg downloaded successfully"
+        
+        Write-Status "Extracting FFmpeg..."
+        
+        # Create ffmpeg directory
+        if (Test-Path $ffmpegDir) {
+            Remove-Item $ffmpegDir -Recurse -Force
+        }
+        New-Item -ItemType Directory -Path $ffmpegDir -Force | Out-Null
+        
+        # Extract the zip file
+        Expand-Archive -Path $tempZip -DestinationPath $env:TEMP -Force
+        
+        # Find the extracted folder (it has a version number in the name)
+        $extractedFolder = Get-ChildItem -Path $env:TEMP -Directory | Where-Object { $_.Name -like "ffmpeg-*-essentials_build" } | Select-Object -First 1
+        
+        if ($extractedFolder) {
+            # Copy contents to our ffmpeg directory
+            Copy-Item -Path "$($extractedFolder.FullName)\*" -Destination $ffmpegDir -Recurse -Force
+            
+            # Clean up extracted folder
+            Remove-Item $extractedFolder.FullName -Recurse -Force
+            
+            Write-Success "FFmpeg extracted successfully"
+        }
+        else {
+            throw "Could not find extracted FFmpeg folder"
+        }
+        
+        # Clean up zip file
+        Remove-Item $tempZip -Force
+        
+        # Verify installation
+        if (Test-Path (Join-Path $ffmpegBin "ffmpeg.exe")) {
+            $env:PATH = "$ffmpegBin;$env:PATH"
+            Write-Success "FFmpeg installed and added to PATH for current session"
+            
+            # Test FFmpeg
+            try {
+                $version = & ffmpeg -version 2>$null | Select-Object -First 1
+                Write-Success "FFmpeg is working: $($version -replace 'ffmpeg version ', '' -split ' ' | Select-Object -First 1)"
+            }
+            catch {
+                Write-Warning "FFmpeg installed but test failed"
+            }
+        }
+        else {
+            throw "FFmpeg executable not found after extraction"
+        }
+    }
+    catch {
+        Write-Error "Failed to install FFmpeg: $_"
+        Write-Status "You can install FFmpeg manually:"
+        Write-Host "1. Download from: https://www.gyan.dev/ffmpeg/builds/"
+        Write-Host "2. Extract to: $ffmpegDir"
+        Write-Host "3. Add to PATH: $ffmpegBin"
+        
+        # Ask user if they want to continue without FFmpeg
+        $continue = Read-Host "Continue installation without FFmpeg? (y/N)"
+        if ($continue -notmatch "^[Yy]$") {
+            Write-Status "Installation cancelled. Please install FFmpeg first."
+            exit 1
+        }
+        Write-Warning "Continuing installation without FFmpeg (some features may not work)"
     }
 }
 

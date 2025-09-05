@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhisperLiveKit Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; }
+        #log { background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6; height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 WhisperLiveKit Диагностика</h1>
+    
+    <div id="browser-check" class="status info">Проверяем поддержку браузера...</div>
+    <div id="microphone-check" class="status info">Проверяем доступ к микрофону...</div>
+    <div id="websocket-check" class="status info">Проверяем WebSocket соединение...</div>
+    <div id="audio-check" class="status info">Проверяем аудио кодеки...</div>
+    
+    <button onclick="testMicrophone()">Тест микрофона</button>
+    <button onclick="testWebSocket()">Тест WebSocket</button>
+    <button onclick="testFullFlow()">Полный тест</button>
+    
+    <h3>Лог:</h3>
+    <div id="log"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.innerHTML += `<div style="color: ${type === 'error' ? 'red' : type === 'success' ? 'green' : 'black'}">[${timestamp}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        // Check browser support
+        function checkBrowserSupport() {
+            const checks = [
+                { name: 'MediaDevices API', test: () => navigator.mediaDevices },
+                { name: 'WebSocket', test: () => window.WebSocket },
+                { name: 'MediaRecorder', test: () => window.MediaRecorder },
+                { name: 'AudioContext', test: () => window.AudioContext || window.webkitAudioContext }
+            ];
+
+            let allSupported = true;
+            checks.forEach(check => {
+                if (check.test()) {
+                    log(`✓ ${check.name} поддерживается`, 'success');
+                } else {
+                    log(`✗ ${check.name} НЕ поддерживается`, 'error');
+                    allSupported = false;
+                }
+            });
+
+            updateStatus('browser-check', 
+                allSupported ? '✓ Браузер поддерживает все необходимые API' : '✗ Браузер не поддерживает некоторые API',
+                allSupported ? 'success' : 'error'
+            );
+        }
+
+        // Test microphone access
+        async function testMicrophone() {
+            try {
+                log('Запрашиваем доступ к микрофону...');
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                log('✓ Доступ к микрофону получен', 'success');
+                
+                // Test audio levels
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const analyser = audioContext.createAnalyser();
+                const microphone = audioContext.createMediaStreamSource(stream);
+                microphone.connect(analyser);
+                
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                let maxLevel = 0;
+                
+                const checkAudio = () => {
+                    analyser.getByteFrequencyData(dataArray);
+                    const level = Math.max(...dataArray);
+                    maxLevel = Math.max(maxLevel, level);
+                };
+                
+                const interval = setInterval(checkAudio, 100);
+                
+                setTimeout(() => {
+                    clearInterval(interval);
+                    stream.getTracks().forEach(track => track.stop());
+                    audioContext.close();
+                    
+                    if (maxLevel > 10) {
+                        log(`✓ Аудио обнаружено (максимальный уровень: ${maxLevel})`, 'success');
+                        updateStatus('microphone-check', '✓ Микрофон работает корректно', 'success');
+                    } else {
+                        log(`⚠ Аудио сигнал слабый или отсутствует (максимальный уровень: ${maxLevel})`, 'warning');
+                        updateStatus('microphone-check', '⚠ Микрофон не улавливает звук', 'warning');
+                    }
+                }, 3000);
+                
+                log('Говорите в микрофон в течение 3 секунд...');
+                
+            } catch (error) {
+                log(`✗ Ошибка доступа к микрофону: ${error.message}`, 'error');
+                updateStatus('microphone-check', '✗ Нет доступа к микрофону', 'error');
+            }
+        }
+
+        // Test WebSocket connection
+        async function testWebSocket() {
+            const wsUrl = 'ws://localhost:8000/asr';
+            log(`Подключаемся к WebSocket: ${wsUrl}`);
+            
+            try {
+                const ws = new WebSocket(wsUrl);
+                
+                ws.onopen = () => {
+                    log('✓ WebSocket соединение установлено', 'success');
+                    updateStatus('websocket-check', '✓ WebSocket работает', 'success');
+                    
+                    // Send test message
+                    const testBlob = new Blob(['test'], { type: 'audio/webm' });
+                    ws.send(testBlob);
+                    log('Отправлен тестовый аудио блок');
+                };
+                
+                ws.onmessage = (event) => {
+                    log(`Получено сообщение от сервера: ${event.data}`, 'success');
+                };
+                
+                ws.onerror = (error) => {
+                    log(`✗ WebSocket ошибка: ${error}`, 'error');
+                    updateStatus('websocket-check', '✗ WebSocket ошибка', 'error');
+                };
+                
+                ws.onclose = (event) => {
+                    if (event.wasClean) {
+                        log('WebSocket соединение закрыто корректно');
+                    } else {
+                        log(`✗ WebSocket соединение прервано (код: ${event.code})`, 'error');
+                        updateStatus('websocket-check', '✗ WebSocket не работает', 'error');
+                    }
+                };
+                
+                // Close after 5 seconds
+                setTimeout(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.close();
+                    }
+                }, 5000);
+                
+            } catch (error) {
+                log(`✗ Не удалось создать WebSocket: ${error.message}`, 'error');
+                updateStatus('websocket-check', '✗ WebSocket недоступен', 'error');
+            }
+        }
+
+        // Test audio codecs
+        function testAudioCodecs() {
+            const recorder = window.MediaRecorder;
+            if (!recorder) {
+                updateStatus('audio-check', '✗ MediaRecorder недоступен', 'error');
+                return;
+            }
+
+            const codecs = ['audio/webm', 'audio/webm;codecs=opus', 'audio/webm;codecs=vp8', 'audio/mp4'];
+            const supported = [];
+            
+            codecs.forEach(codec => {
+                if (MediaRecorder.isTypeSupported(codec)) {
+                    supported.push(codec);
+                    log(`✓ Поддерживается: ${codec}`, 'success');
+                } else {
+                    log(`✗ Не поддерживается: ${codec}`, 'warning');
+                }
+            });
+
+            if (supported.length > 0) {
+                updateStatus('audio-check', `✓ Поддерживаются кодеки: ${supported.join(', ')}`, 'success');
+            } else {
+                updateStatus('audio-check', '✗ Нет поддерживаемых аудио кодеков', 'error');
+            }
+        }
+
+        // Full test
+        async function testFullFlow() {
+            log('=== Начинаем полный тест ===');
+            checkBrowserSupport();
+            testAudioCodecs();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testMicrophone();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testWebSocket();
+            log('=== Тест завершен ===');
+        }
+
+        // Run initial checks
+        window.onload = () => {
+            checkBrowserSupport();
+            testAudioCodecs();
+        };
+    </script>
+</body>
+</html>
