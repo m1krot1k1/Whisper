@@ -458,6 +458,9 @@ function New-ConfigurationFiles {
         }
     }
     
+    # Download CIF models for large-v2 support
+    Get-CifModels
+    
     if (-not (Test-Path "env.example")) {
         Write-Status "env.example configuration file should be created separately"
     }
@@ -468,9 +471,60 @@ function New-ConfigurationFiles {
     Write-Status "Directory structure created:"
     Write-Host "  .\models\whisper\     - Whisper model files"
     Write-Host "  .\models\silero_vad\  - VAD model files"
-    Write-Host "  .\models\cif\         - CIF model files (optional)"
+    Write-Host "  .\models\cif\         - CIF model files (downloaded)"
     Write-Host "  .\models\cache\       - Temporary cache"
     Write-Host "  .\logs\               - Server logs"
+}
+
+# Download CIF models for improved word boundary detection
+function Get-CifModels {
+    Write-Status "Downloading CIF models for word boundary detection..."
+    
+    # CIF models URLs from GitHub repository
+    $cifModels = @{
+        "cif_base.ckpt" = "https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_base.ckpt"
+        "cif_small.ckpt" = "https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_small.ckpt"
+        "cif_medium.ckpt" = "https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_medium.ckpt"
+        "cif_large.ckpt" = "https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_large.ckpt"
+    }
+    
+    # Create CIF directory
+    New-Item -ItemType Directory -Path "models\cif" -Force | Out-Null
+    
+    # Download each CIF model
+    foreach ($modelName in $cifModels.Keys) {
+        $modelUrl = $cifModels[$modelName]
+        $modelPath = "models\cif\$modelName"
+        
+        if (-not (Test-Path $modelPath)) {
+            Write-Status "Downloading $modelName..."
+            
+            try {
+                # Use Invoke-WebRequest to download
+                Invoke-WebRequest -Uri $modelUrl -OutFile $modelPath -UseBasicParsing
+                Write-Success "Downloaded $modelName"
+            }
+            catch {
+                Write-Warning "Failed to download $modelName : $_"
+                # Remove partial file if it exists
+                if (Test-Path $modelPath) {
+                    Remove-Item $modelPath -Force
+                }
+            }
+        }
+        else {
+            Write-Success "$modelName already exists"
+        }
+    }
+    
+    # Check if we successfully downloaded the large model for large-v2
+    if (Test-Path "models\cif\cif_large.ckpt") {
+        Write-Success "CIF model for large-v2 is ready"
+    }
+    else {
+        Write-Warning "CIF model for large-v2 not available. Using fallback configuration."
+        Write-Status "You can download manually from: https://github.com/backspacetg/simul_whisper/tree/main/cif_models"
+    }
 }
 
 function Test-Installation {

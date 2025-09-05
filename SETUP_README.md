@@ -255,13 +255,15 @@ After installation, WhisperLiveKit creates the following directory structure:
 │   ├── base.pt       # ~150MB
 │   ├── small.pt      # ~250MB
 │   ├── medium.pt     # ~770MB
+│   ├── large-v2.pt   # ~1.5GB (recommended)
 │   └── large-v3.pt   # ~1.5GB
 ├── silero_vad/       # Voice Activity Detection model (auto-downloaded)
 │   └── silero_vad.onnx  # ~40MB
-├── cif/              # CIF models for word boundary detection (manual)
+├── cif/              # CIF models for word boundary detection (auto-downloaded)
 │   ├── cif_base.ckpt
 │   ├── cif_small.ckpt
-│   └── cif_medium.ckpt
+│   ├── cif_medium.ckpt
+│   └── cif_large.ckpt  # For large-v2 compatibility
 └── cache/            # Temporary cache files
 ```
 
@@ -278,10 +280,13 @@ These models are **automatically downloaded** when needed:
 
 ### Manual Downloads Required
 
-**CIF Models** (Optional - for better word boundary detection):
-- Download from: https://github.com/backspacetg/simul_whisper/tree/main/cif_models
-- Place in `./models/cif/` directory
-- Available for: base, small, medium (no large-v3 model)
+**CIF Models** (Automatically downloaded by install scripts):
+- **Auto-downloaded** from: https://github.com/backspacetg/simul_whisper/tree/main/cif_models
+- **Automatically placed** in `./models/cif/` directory
+- **Available models**: base, small, medium, large (for large-v2 compatibility)
+- **Note**: No CIF model exists for large-v3
+
+**Manual download only required if automatic download fails**
 
 ### Model Configuration
 
@@ -304,9 +309,10 @@ WLK_MODEL_CACHE_DIR=./models
 |-------|------|-------|----------|----------|
 | tiny | ~40MB | Very Fast | Low | Testing, demos |
 | base | ~150MB | Fast | Good | General use |
-| small | ~250MB | Moderate | High | **Recommended** |
+| small | ~250MB | Moderate | High | Quality transcription |
 | medium | ~770MB | Slow | Very High | High quality needs |
-| large-v3 | ~1.5GB | Very Slow | Highest | Professional use |
+| large-v2 | ~1.5GB | Very Slow | Highest | **Recommended default** |
+| large-v3 | ~1.5GB | Very Slow | Highest | Latest (no CIF support) |
 
 ### Storage Requirements
 

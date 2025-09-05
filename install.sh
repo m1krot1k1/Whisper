@@ -371,6 +371,9 @@ create_config_files() {
     print_status "Creating models directory structure..."
     mkdir -p models/{whisper,silero_vad,cif,cache}
     
+    # Download CIF models for large-v2 support
+    download_cif_models
+    
     # Create logs directory
     mkdir -p logs
     
@@ -386,9 +389,65 @@ create_config_files() {
     print_status "Directory structure created:"
     echo "  ./models/whisper/     - Whisper model files"
     echo "  ./models/silero_vad/  - VAD model files"
-    echo "  ./models/cif/         - CIF model files (optional)"
+    echo "  ./models/cif/         - CIF model files (downloaded)"
     echo "  ./models/cache/       - Temporary cache"
     echo "  ./logs/               - Server logs"
+}
+
+# Download CIF models for improved word boundary detection
+download_cif_models() {
+    print_status "Downloading CIF models for word boundary detection..."
+    
+    # CIF models URLs from GitHub repository
+    declare -A CIF_MODELS=(
+        ["cif_base.ckpt"]="https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_base.ckpt"
+        ["cif_small.ckpt"]="https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_small.ckpt"
+        ["cif_medium.ckpt"]="https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_medium.ckpt"
+        ["cif_large.ckpt"]="https://github.com/backspacetg/simul_whisper/raw/main/cif_models/cif_large.ckpt"
+    )
+    
+    # Create CIF directory
+    mkdir -p models/cif
+    
+    # Download each CIF model
+    for model_name in "${!CIF_MODELS[@]}"; do
+        model_url="${CIF_MODELS[$model_name]}"
+        model_path="models/cif/$model_name"
+        
+        if [ ! -f "$model_path" ]; then
+            print_status "Downloading $model_name..."
+            
+            # Try wget first, then curl
+            if command -v wget &> /dev/null; then
+                if wget -q --show-progress "$model_url" -O "$model_path"; then
+                    print_success "Downloaded $model_name"
+                else
+                    print_warning "Failed to download $model_name with wget"
+                    rm -f "$model_path"  # Remove partial file
+                fi
+            elif command -v curl &> /dev/null; then
+                if curl -L "$model_url" -o "$model_path" --progress-bar; then
+                    print_success "Downloaded $model_name"
+                else
+                    print_warning "Failed to download $model_name with curl"
+                    rm -f "$model_path"  # Remove partial file
+                fi
+            else
+                print_warning "Neither wget nor curl found. Cannot download CIF models automatically."
+                print_status "Please download manually from: https://github.com/backspacetg/simul_whisper/tree/main/cif_models"
+                break
+            fi
+        else
+            print_success "$model_name already exists"
+        fi
+    done
+    
+    # Check if we successfully downloaded the large model for large-v2
+    if [ -f "models/cif/cif_large.ckpt" ]; then
+        print_success "CIF model for large-v2 is ready"
+    else
+        print_warning "CIF model for large-v2 not available. Using fallback configuration."
+    fi
 }
 
 # Verify installation
