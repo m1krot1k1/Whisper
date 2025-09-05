@@ -289,6 +289,13 @@ start_development_server() {
     echo ""
     
     # Execute the command with stderr filtering to remove NNPACK warnings
+    # Load environment variables from .env file
+    if [ -f ".env" ]; then
+        set -a
+        source .env
+        set +a
+    fi
+    
     if [ -n "$args" ]; then
         eval "whisperlivekit-server$args" 2>&1 | grep -v "NNPACK.cpp:56"
     else
@@ -358,6 +365,13 @@ start_production_server() {
     echo "  Graceful shutdown: kill -TERM \$(cat gunicorn.pid)"
     echo "  Check status: ps aux | grep gunicorn"
     echo ""
+    
+    # Load environment variables from .env file
+    if [ -f ".env" ]; then
+        set -a
+        source .env
+        set +a
+    fi
     
     # Execute gunicorn
     eval "$gunicorn_cmd $gunicorn_args $app_module"
