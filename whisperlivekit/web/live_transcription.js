@@ -31,6 +31,9 @@ const chunkSelector = document.getElementById("chunkSelector");
 const websocketInput = document.getElementById("websocketInput");
 const websocketDefaultSpan = document.getElementById("wsDefaultUrl");
 const linesTranscriptDiv = document.getElementById("linesTranscript");
+const transcriptActionsDiv = document.getElementById("transcriptActions");
+const copyButton = document.getElementById("copyButton");
+const downloadButton = document.getElementById("downloadButton");
 const timerElement = document.querySelector(".timer");
 const themeRadios = document.querySelectorAll('input[name="theme"]');
 const microphoneSelect = document.getElementById("microphoneSelect");
@@ -84,6 +87,60 @@ if (darkMq && darkMq.addEventListener) {
   // deprecated, but included for Safari compatibility
   darkMq.addListener(handleOsThemeChange);
 }
+
+function getTranscriptionText() {
+    let text = "";
+    const paragraphs = linesTranscriptDiv.querySelectorAll("p");
+    paragraphs.forEach(p => {
+        const speakerSpan = p.querySelector("#speaker");
+        const textContentDiv = p.querySelector(".textcontent");
+
+        if (textContentDiv) {
+            let line = "";
+            if (speakerSpan) {
+                const speakerClone = speakerSpan.cloneNode(true);
+                const timeInfo = speakerClone.querySelector("#timeInfo");
+                if (timeInfo) {
+                    speakerClone.removeChild(timeInfo);
+                }
+                line += speakerClone.textContent.trim() + ": ";
+            }
+            line += textContentDiv.textContent.trim();
+            if (line.trim()) {
+                text += line + "\n";
+            }
+        }
+    });
+    return text;
+}
+
+copyButton.addEventListener("click", () => {
+    const textToCopy = getTranscriptionText();
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        statusText.textContent = "Транскрипция скопирована в буфер обмена!";
+        setTimeout(() => {
+            if (!isRecording && !waitingForStop) {
+                statusText.textContent = "Нажмите, чтобы начать транскрипцию";
+            }
+        }, 3000);
+    }).catch(err => {
+        console.error('Ошибка копирования: ', err);
+        statusText.textContent = "Не удалось скопировать транскрипцию.";
+    });
+});
+
+downloadButton.addEventListener("click", () => {
+    const textToDownload = getTranscriptionText();
+    const blob = new Blob([textToDownload], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "transcription.txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+});
 
 async function enumerateMicrophones() {
   try {
@@ -204,6 +261,9 @@ function setupWebSocket() {
               true
             );
           }
+          if (linesTranscriptDiv.textContent.trim().length > 0) {
+            transcriptActionsDiv.style.display = "block";
+          }
         }
       } else {
         statusText.textContent = "Disconnected from the WebSocket server. (Check logs if model is loading.)";
@@ -243,6 +303,10 @@ function setupWebSocket() {
         }
         statusText.textContent = "Finished processing audio! Ready to record again.";
         recordButton.disabled = false;
+
+        if (linesTranscriptDiv.textContent.trim().length > 0) {
+            transcriptActionsDiv.style.display = "block";
+        }
 
         if (websocket) {
           websocket.close();
@@ -532,6 +596,8 @@ async function stopRecording() {
 
 async function toggleRecording() {
   if (!isRecording) {
+    linesTranscriptDiv.innerHTML = "";
+    transcriptActionsDiv.style.display = "none";
     if (waitingForStop) {
       console.log("Waiting for stop, early return");
       return;
