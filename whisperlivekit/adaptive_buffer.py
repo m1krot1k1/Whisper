@@ -338,3 +338,4 @@ class AdaptiveBuffer:
         """Получить историю коррекций"""
         return self.correction_history[-limit:]
 
+
