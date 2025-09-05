@@ -193,7 +193,7 @@ WLK_PUNCTUATION_SPLIT=true
 
 # Отключить быстрый энкодер (Faster Whisper/MLX Whisper) для кодирования
 # Включить, если есть ограничения по памяти GPU или проблемы с CUDA
-# Рекомендуется: true (если нет CUDA библиотек)
+# Рекомендуется: false (если CUDA доступна) - МАКСИМАЛЬНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ
 WLK_DISABLE_FAST_ENCODER=false
 
 # Порог AlignAtt frame (меньше = быстрее, больше = точнее)
@@ -353,12 +353,39 @@ WLK_NO_TRANSCRIPTION=false
 # ОПТИМИЗИРОВАНО ДЛЯ ЧИСТОГО ВЫВОДА
 WLK_LOG_LEVEL=INFO
 
+# =================================================================
+# ОПТИМИЗАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ
+# =================================================================
+
 # Отключить NNPACK warnings (улучшает читаемость логов)
 # NNPACK - библиотека для оптимизации нейронных сетей
 # Предупреждения не критичны, но засоряют вывод
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
+
+# Оптимизация CUDA для максимальной производительности
+# Включает оптимизации памяти и вычислений
+export CUDA_LAUNCH_BLOCKING=0
+export CUDA_CACHE_DISABLE=0
+export CUDA_CACHE_MAXSIZE=2147483648
+
+# Оптимизация PyTorch для GPU (RTX 4070 Ti SUPER - архитектура 8.9)
+export TORCH_CUDA_ARCH_LIST="8.9"
+export TORCH_USE_CUDA_DSA=1
+
+# Отключить предупреждения о неоптимальных путях
+export PYTHONWARNINGS="ignore::UserWarning"
+export TORCH_WARN_LEVEL="0"
+
+# Дополнительные оптимизации для RTX 4070 Ti SUPER
+# Включает Tensor Cores и оптимизации памяти
+export CUDA_MODULE_LOADING=LAZY
+export CUDA_DEVICE_ORDER=PCI_BUS_ID
+
+# Оптимизация для Whisper на GPU
+export WHISPER_CUDA=1
+export WHISPER_DEVICE=cuda
 
 # =================================================================
 # ПРИМЕРЫ КОНФИГУРАЦИЙ
