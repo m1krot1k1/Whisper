@@ -52,8 +52,8 @@ WLK_TASK=transcribe
 # whisper_timestamped - улучшенные временные метки
 # mlx-whisper - оптимизация для Apple Silicon
 # openai-api - использование OpenAI API
-# Рекомендуется: simulstreaming для реального времени
-WLK_BACKEND=simulstreaming
+# Рекомендуется: faster-whisper для стабильной работы с CUDA
+WLK_BACKEND=faster-whisper
 
 # Директория кэша моделей
 # Укажите путь для сохранения загруженных моделей
@@ -158,34 +158,31 @@ WLK_BUFFER_TRIMMING_SEC=15
 # Включить идентификацию голосов (диаризацию)
 # Позволяет различать разных говорящих в реальном времени
 # Требует дополнительных вычислительных ресурсов
-# Рекомендуется: false (временно отключено для быстрого запуска)
+# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
 WLK_DIARIZATION=false
 
-# Бэкенд диаризации
+# Бэкенд диаризации (отключено)
 # diart - более старый, стабильный (требует HF токен)
 # sortformer - новый, более точный (не работает с CUDA)
-# Рекомендуется: sortformer (проще установка, не требует токенов)
-WLK_DIARIZATION_BACKEND=diart
+# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
+# WLK_DIARIZATION_BACKEND=diart
 
-# Модель сегментации для Diart (только для diart backend)
+# Модель сегментации для Diart (отключено)
 # Требует подтверждения лицензии на Hugging Face
-# Рекомендуется: pyannote/segmentation-3.0 (новая версия)
-WLK_SEGMENTATION_MODEL=pyannote/segmentation-3.0
+# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
+# WLK_SEGMENTATION_MODEL=pyannote/segmentation-3.0
 
-# Модель эмбеддингов для Diart (только для diart backend)
-# Рекомендуется: speechbrain/spkrec-ecapa-voxceleb (стандартная)
-WLK_EMBEDDING_MODEL=speechbrain/spkrec-ecapa-voxceleb
+# Модель эмбеддингов для Diart (отключено)
+# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
+# WLK_EMBEDDING_MODEL=speechbrain/spkrec-ecapa-voxceleb
 
-# Hugging Face токен для доступа к моделям pyannote (Diart)
-# Обязательно для работы с Diart
-# Получить можно на: https://huggingface.co/settings/tokens
-# Обязательно подтвердите лицензии моделей pyannote
-HUGGINGFACE_HUB_TOKEN=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
+# Hugging Face токен (отключено)
+# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
+# HUGGINGFACE_HUB_TOKEN=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
 
-# Использовать пунктуацию для улучшения определения границ голосов
-# Помогает лучше разделять говорящих
-# Рекомендуется: true для лучшей точности
-WLK_PUNCTUATION_SPLIT=true
+# Использовать пунктуацию (отключено)
+# ОТКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
+# WLK_PUNCTUATION_SPLIT=true
 
 # =================================================================
 # НАСТРОЙКИ SIMULSTREAMING БЭКЕНДА
@@ -193,8 +190,8 @@ WLK_PUNCTUATION_SPLIT=true
 
 # Отключить быстрый энкодер (Faster Whisper/MLX Whisper) для кодирования
 # Включить, если есть ограничения по памяти GPU или проблемы с CUDA
-# Рекомендуется: false (если CUDA доступна) - МАКСИМАЛЬНАЯ ПРОИЗВОДИТЕЛЬНОСТЬ
-WLK_DISABLE_FAST_ENCODER=false
+# ВКЛЮЧЕНО ДЛЯ СТАБИЛЬНОЙ РАБОТЫ НА CPU
+WLK_DISABLE_FAST_ENCODER=true
 
 # Порог AlignAtt frame (меньше = быстрее, больше = точнее)
 # Ключевой параметр для баланса скорости и точности
@@ -364,28 +361,18 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 
-# Оптимизация CUDA для максимальной производительности
-# Включает оптимизации памяти и вычислений
+# ПРИНУДИТЕЛЬНОЕ ОТКЛЮЧЕНИЕ CUDA ДЛЯ СТАБИЛЬНОЙ РАБОТЫ
+# CUDA библиотеки несовместимы, используем CPU
+export CUDA_VISIBLE_DEVICES=""
 export CUDA_LAUNCH_BLOCKING=0
-export CUDA_CACHE_DISABLE=0
-export CUDA_CACHE_MAXSIZE=2147483648
-
-# Оптимизация PyTorch для GPU (RTX 4070 Ti SUPER - архитектура 8.9)
-export TORCH_CUDA_ARCH_LIST="8.9"
-export TORCH_USE_CUDA_DSA=1
 
 # Отключить предупреждения о неоптимальных путях
 export PYTHONWARNINGS="ignore::UserWarning"
 export TORCH_WARN_LEVEL="0"
 
-# Дополнительные оптимизации для RTX 4070 Ti SUPER
-# Включает Tensor Cores и оптимизации памяти
-export CUDA_MODULE_LOADING=LAZY
-export CUDA_DEVICE_ORDER=PCI_BUS_ID
-
-# Оптимизация для Whisper на GPU
-export WHISPER_CUDA=1
-export WHISPER_DEVICE=cuda
+# Принудительно использовать CPU для Whisper
+export WHISPER_CUDA=0
+export WHISPER_DEVICE=cpu
 
 # =================================================================
 # ПРИМЕРЫ КОНФИГУРАЦИЙ
