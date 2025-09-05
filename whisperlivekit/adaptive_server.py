@@ -142,3 +142,4 @@ class AdaptiveTranscriptionServer:
         return self.adaptive_buffer.get_correction_history(limit)
 
 
+
