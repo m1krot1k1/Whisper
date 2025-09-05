@@ -61,16 +61,23 @@ load_env() {
 
 # Check if virtual environment exists and activate it
 activate_venv() {
-    if [ -d "venv" ]; then
+    # Check if virtual environment exists and is complete
+    if [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
         print_status "Activating virtual environment..."
         source venv/bin/activate
         print_success "Virtual environment activated"
     else
-        print_warning "Virtual environment not found. Creating new virtual environment..."
+        print_warning "Virtual environment not found or incomplete. Creating new virtual environment..."
+        
+        # Remove incomplete virtual environment if it exists
+        if [ -d "venv" ]; then
+            print_warning "Incomplete virtual environment found. Removing and recreating..."
+            rm -rf venv
+        fi
         
         # Find Python command
         PYTHON_CMD=""
-        for cmd in python3 python; do
+        for cmd in python3.11 python3.10 python3.9 python3 python; do
             if command -v $cmd &> /dev/null; then
                 PYTHON_CMD=$cmd
                 break
@@ -86,7 +93,7 @@ activate_venv() {
         print_status "Creating virtual environment with $PYTHON_CMD..."
         $PYTHON_CMD -m venv venv
         
-        if [ $? -eq 0 ]; then
+        if [ $? -eq 0 ] && [ -f "venv/bin/activate" ]; then
             print_success "Virtual environment created successfully"
             source venv/bin/activate
             print_success "Virtual environment activated"
@@ -117,6 +124,27 @@ check_installation() {
     else
         print_error "WhisperLiveKit is not installed. Please run install.sh first."
         exit 1
+    fi
+    
+    # Check for NeMo toolkit (required for diarization)
+    if python3 -c "import nemo" 2>/dev/null; then
+        print_success "NeMo toolkit is available"
+    else
+        print_warning "NeMo toolkit not found. Installing automatically..."
+        
+        # Check if system dependencies are installed
+        if ! dpkg -l | grep -q python3.10-dev; then
+            print_warning "Installing system dependencies for compilation..."
+            sudo apt-get update
+            sudo apt-get install -y python3.10-dev build-essential gcc g++ make
+        fi
+        
+        pip install "git+https://github.com/NVIDIA/NeMo.git@main#egg=nemo_toolkit[asr]"
+        if [ $? -eq 0 ]; then
+            print_success "NeMo toolkit installed successfully"
+        else
+            print_warning "Failed to install NeMo toolkit. Some diarization features may not work."
+        fi
     fi
     
     # Check FFmpeg

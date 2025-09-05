@@ -196,6 +196,43 @@ install_cuda_toolkit() {
     fi
 }
 
+# Install system dependencies
+install_system_dependencies() {
+    print_status "Installing system dependencies..."
+    
+    if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        # Linux
+        if command -v apt-get &> /dev/null; then
+            print_status "Installing system dependencies via apt..."
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg python3.10-dev build-essential gcc g++ make
+        elif command -v yum &> /dev/null; then
+            print_status "Installing system dependencies via yum..."
+            sudo yum install -y ffmpeg python3-devel gcc gcc-c++ make
+        elif command -v dnf &> /dev/null; then
+            print_status "Installing system dependencies via dnf..."
+            sudo dnf install -y ffmpeg python3-devel gcc gcc-c++ make
+        else
+            print_error "Could not detect package manager. Please install dependencies manually."
+            exit 1
+        fi
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        if command -v brew &> /dev/null; then
+            print_status "Installing system dependencies via Homebrew..."
+            brew install ffmpeg python@3.10
+        else
+            print_error "Homebrew not found. Please install Homebrew first or install dependencies manually."
+            exit 1
+        fi
+    else
+        print_error "Unsupported OS. Please install dependencies manually."
+        exit 1
+    fi
+    
+    print_success "System dependencies installed"
+}
+
 # Check and install FFmpeg
 install_ffmpeg() {
     print_status "Checking FFmpeg installation..."
@@ -252,11 +289,25 @@ install_ffmpeg() {
 create_venv() {
     print_status "Creating virtual environment..."
     
-    if [ -d "venv" ]; then
+    # Check if virtual environment exists and is complete
+    if [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
         print_warning "Virtual environment already exists. Skipping creation."
     else
+        # Remove incomplete virtual environment if it exists
+        if [ -d "venv" ]; then
+            print_warning "Incomplete virtual environment found. Removing and recreating..."
+            rm -rf venv
+        fi
+        
+        print_status "Creating new virtual environment with $PYTHON_CMD..."
         $PYTHON_CMD -m venv venv
-        print_success "Virtual environment created"
+        
+        if [ $? -eq 0 ] && [ -f "venv/bin/activate" ]; then
+            print_success "Virtual environment created successfully"
+        else
+            print_error "Failed to create virtual environment"
+            exit 1
+        fi
     fi
     
     print_status "Activating virtual environment..."
@@ -291,6 +342,10 @@ install_dependencies() {
     # Install additional audio dependencies
     print_status "Installing additional audio processing dependencies..."
     $PIP_CMD install soundfile librosa
+    
+    # Install NeMo toolkit for diarization backends
+    print_status "Installing NeMo toolkit for diarization support..."
+    $PIP_CMD install "git+https://github.com/NVIDIA/NeMo.git@main#egg=nemo_toolkit[asr]"
     
     # Install production server dependencies
     print_status "Installing production server dependencies..."
@@ -505,6 +560,7 @@ main() {
     echo ""
     
     check_python
+    install_system_dependencies
     install_cuda
     install_ffmpeg
     create_venv
