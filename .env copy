@@ -3,13 +3,57 @@
 # Скопируйте этот файл в .env и измените значения в соответствии с вашими потребностями
 
 # =================================================================
+# КРИТИЧЕСКИ ВАЖНЫЕ НАСТРОЙКИ GPU - ДОЛЖНЫ БЫТЬ В НАЧАЛЕ!
+# =================================================================
+
+# ВКЛЮЧЕНИЕ CUDA ДЛЯ РАБОТЫ НА GPU
+# Используем GPU для ускорения обработки
+CUDA_VISIBLE_DEVICES=0
+CUDA_LAUNCH_BLOCKING=1
+
+# Использовать GPU для Whisper
+WHISPER_CUDA=1
+WHISPER_DEVICE=cuda
+
+# Оптимизация потоков для GPU
+# Увеличиваем количество потоков для лучшей производительности с GPU
+OMP_NUM_THREADS=4
+MKL_NUM_THREADS=4
+OPENBLAS_NUM_THREADS=4
+
+# Отключить предупреждения о неоптимальных путях
+PYTHONWARNINGS=ignore::UserWarning
+TORCH_WARN_LEVEL=0
+
+# Отключить NNPACK warnings (библиотека не поддерживается на этом железе)
+TORCH_USE_NNPACK=0
+TORCH_USE_QNNPACK=0
+
+# Отключить все предупреждения PyTorch
+TORCH_SHOW_CPP_STACKTRACES=0
+TORCH_USE_CUDA_DSA=0
+
+# Дополнительные переменные для отключения NNPACK
+TORCH_USE_NNPACK_ONLY=0
+TORCH_USE_QNNPACK_ONLY=0
+TORCH_USE_MKLDNN=0
+
+# Принудительное использование GPU для faster-whisper
+FASTER_WHISPER_CUDA=1
+FASTER_WHISPER_DEVICE=cuda
+
+# Дополнительные настройки для CUDA
+CUDA_CACHE_DISABLE=0
+CUDA_CACHE_MAXSIZE=2147483648
+
+# =================================================================
 # КОНФИГУРАЦИЯ СЕРВЕРА
 # =================================================================
 
 # Хост и порт сервера
 # localhost - для локального доступа, 0.0.0.0 - для доступа извне
 # Рекомендуется: localhost для разработки, 0.0.0.0 для продакшена
-WLK_HOST=localhost
+WLK_HOST=0.0.0.0
 
 # Порт сервера (1024-65535)
 # Рекомендуется: 8 000 для разработки, 80/443 для продакшена
@@ -48,11 +92,11 @@ WLK_TASK=transcribe
 
 # Бэкенд обработки
 # simulstreaming - самый быстрый, низкая задержка (рекомендуется)
-# faster-whisper - быстрый, оптимизированный
+# faster-whisper - быстрый, оптимизированный для GPU
 # whisper_timestamped - улучшенные временные метки
 # mlx-whisper - оптимизация для Apple Silicon
 # openai-api - использование OpenAI API
-# Рекомендуется: faster-whisper для стабильной работы с CUDA
+# ОПТИМИЗИРОВАНО ДЛЯ GPU - faster-whisper с CUDA поддержкой
 WLK_BACKEND=faster-whisper
 
 # Директория кэша моделей
@@ -423,38 +467,6 @@ WLK_ADAPTIVE_ENDPOINT=/asr-adaptive
 # =================================================================
 # ОПТИМИЗАЦИЯ ПРОИЗВОДИТЕЛЬНОСТИ
 # =================================================================
-
-# Оптимизация потоков для GPU
-# Увеличиваем количество потоков для лучшей производительности с GPU
-export OMP_NUM_THREADS=4
-export MKL_NUM_THREADS=4
-export OPENBLAS_NUM_THREADS=4
-
-# ВКЛЮЧЕНИЕ CUDA ДЛЯ РАБОТЫ НА GPU
-# Используем GPU для ускорения обработки
-export CUDA_VISIBLE_DEVICES="0"
-export CUDA_LAUNCH_BLOCKING=1
-
-# Отключить предупреждения о неоптимальных путях
-export PYTHONWARNINGS="ignore::UserWarning"
-export TORCH_WARN_LEVEL="0"
-
-# Отключить NNPACK warnings (библиотека не поддерживается на этом железе)
-export TORCH_USE_NNPACK=0
-export TORCH_USE_QNNPACK=0
-
-# Отключить все предупреждения PyTorch
-export TORCH_SHOW_CPP_STACKTRACES=0
-export TORCH_USE_CUDA_DSA=0
-
-# Дополнительные переменные для отключения NNPACK
-export TORCH_USE_NNPACK_ONLY=0
-export TORCH_USE_QNNPACK_ONLY=0
-export TORCH_USE_MKLDNN=0
-
-# Использовать GPU для Whisper
-export WHISPER_CUDA=1
-export WHISPER_DEVICE=cuda
 
 # =================================================================
 # ПРИМЕРЫ КОНФИГУРАЦИЙ
