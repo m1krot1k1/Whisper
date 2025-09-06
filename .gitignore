@@ -12,13 +12,36 @@ ffmpeg/
 # МОДЕЛИ И КЭШИ
 # =================================================================
 
-# Файлы моделей
+# Файлы моделей (папки сохраняются, содержимое игнорируется)
+models/whisper/*
+!models/whisper/.gitkeep
+
+models/faster-whisper/*
+!models/faster-whisper/.gitkeep
+
+models/huggingface/*
+!models/huggingface/.gitkeep
+
+models/silero_vad/*
+!models/silero_vad/.gitkeep
+
+models/cif/*
+!models/cif/.gitkeep
+
+models/progrev/*
+!models/progrev/.gitkeep
+
+models/mlx-whisper/*
+!models/mlx-whisper/.gitkeep
+
+models/nemo/*
+!models/nemo/.gitkeep
+
+# Общие файлы моделей
 models/*
 !models/.gitkeep
-!models/whisper/.gitkeep
-!models/cache/.gitkeep
-!models/silero_vad/.gitkeep
-!models/cif/.gitkeep
+!models/*/
+!models/*/.gitkeep
 
 # Логи
 logs/*

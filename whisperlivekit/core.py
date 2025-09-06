@@ -5,7 +5,10 @@ except ImportError:
     from .whisper_streaming_custom.whisper_online import backend_factory
     from .whisper_streaming_custom.online_asr import OnlineASRProcessor
 from whisperlivekit.warmup import warmup_asr, warmup_online
+from whisperlivekit.model_paths import get_model_paths_manager
+from whisperlivekit.config_loader import get_configuration
 from argparse import Namespace
+from typing import Optional, Union, Tuple
 import sys
 
 class TranscriptionEngine:
@@ -21,50 +24,17 @@ class TranscriptionEngine:
         if TranscriptionEngine._initialized:
             return
 
-        defaults = {
-            "host": "localhost",
-            "port": 8000,
-            "warmup_file": None,
-            "diarization": False,
-            "punctuation_split": False,
-            "min_chunk_size": 0.5,
-            "model": "tiny",
-            "model_cache_dir": None,
-            "model_dir": None,
-            "lan": "auto",
-            "task": "transcribe",
-            "backend": "faster-whisper",
-            "vac": True,
-            "vac_chunk_size": 0.04,
-            "log_level": "DEBUG",
-            "ssl_certfile": None,
-            "ssl_keyfile": None,
-            "transcription": True,
-            "vad": True,
-            # whisperstreaming params:
-            "buffer_trimming": "segment",
-            "confidence_validation": False,
-            "buffer_trimming_sec": 15,
-            # simulstreaming params:
-            "disable_fast_encoder": False,
-            "frame_threshold": 25,
-            "beams": 1,
-            "decoder_type": None,
-            "audio_max_len": 20.0,
-            "audio_min_len": 0.0,
-            "cif_ckpt_path": None,
-            "never_fire": False,
-            "init_prompt": None,
-            "static_init_prompt": None,
-            "max_context_tokens": None,
-            "model_path": './base.pt',
-            "diarization_backend": "sortformer",
-            # diart params:
-            "segmentation_model": "pyannote/segmentation-3.0",
-            "embedding_model": "pyannote/embedding",         
-        }
+        # Initialize model paths manager first
+        self.model_paths = get_model_paths_manager(kwargs.get('model_cache_dir', './models'))
 
-        config_dict = {**defaults, **kwargs}
+        # Load configuration from .env.clone and merge with runtime kwargs
+        config_dict = get_configuration(**kwargs)
+
+        # Set up backend-specific cache directories
+        if not config_dict.get('model_cache_dir'):
+            config_dict['model_cache_dir'] = self.model_paths.get_backend_specific_cache_dir(
+                config_dict.get('backend', 'faster-whisper')
+            )
 
         if 'no_transcription' in kwargs:
             config_dict['transcription'] = not kwargs['no_transcription']

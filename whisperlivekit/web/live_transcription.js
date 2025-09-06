@@ -31,6 +31,7 @@ const chunkSelector = document.getElementById("chunkSelector");
 const websocketInput = document.getElementById("websocketInput");
 const websocketDefaultSpan = document.getElementById("wsDefaultUrl");
 const linesTranscriptDiv = document.getElementById("linesTranscript");
+const currentTranscriptionElement = document.getElementById("current-transcription");
 const transcriptActionsDiv = document.getElementById("transcriptActions");
 const copyButton = document.getElementById("copyButton");
 const downloadButton = document.getElementById("downloadButton");
@@ -90,6 +91,8 @@ if (darkMq && darkMq.addEventListener) {
 
 function getTranscriptionText() {
     let text = "";
+    
+    // Получаем текст из основного блока транскрипции
     const paragraphs = linesTranscriptDiv.querySelectorAll("p");
     paragraphs.forEach(p => {
         const speakerSpan = p.querySelector("#speaker");
@@ -111,6 +114,13 @@ function getTranscriptionText() {
             }
         }
     });
+    
+    // Добавляем текст из текущего элемента транскрипции
+    const currentText = currentTranscriptionElement.textContent.trim();
+    if (currentText) {
+        text += currentText + "\n";
+    }
+    
     return text;
 }
 
@@ -314,6 +324,27 @@ function setupWebSocket() {
         return;
       }
 
+      // Обработка сообщений от адаптивного сервера
+      if (data.type === "instant_text") {
+        // Мгновенное отображение текста в режиме реального времени
+        currentTranscriptionElement.innerHTML = `<p><div class='textcontent'>${data.text}</div></p>`;
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        return;
+      }
+
+      if (data.type === "corrected_text") {
+        // Обработка исправленного текста
+        if (data.corrections && data.corrections.length > 0) {
+          // Добавляем исправленный текст в основной блок
+          const correctedHtml = `<p><div class='textcontent'>${data.text}</div></p>`;
+          linesTranscriptDiv.innerHTML += correctedHtml;
+          // Очищаем текущий элемент, так как текст уже исправлен
+          currentTranscriptionElement.innerHTML = "";
+          window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+        }
+        return;
+      }
+
       lastReceivedData = data;
 
       const {
@@ -350,20 +381,15 @@ function renderLinesWithBuffer(
   if (current_status === "no_audio_detected") {
     linesTranscriptDiv.innerHTML =
       "<p style='text-align: center; color: var(--muted); margin-top: 20px;'><em>No audio detected...</em></p>";
+    currentTranscriptionElement.innerHTML = "";
     return;
   }
 
-  const showLoading = !isFinalizing && (lines || []).some((it) => it.speaker == 0);
-  const showTransLag = !isFinalizing && remaining_time_transcription > 0;
-  const showDiaLag = !isFinalizing && !!buffer_diarization && remaining_time_diarization > 0;
   const signature = JSON.stringify({
     lines: (lines || []).map((it) => ({ speaker: it.speaker, text: it.text, beg: it.beg, end: it.end })),
     buffer_transcription: buffer_transcription || "",
     buffer_diarization: buffer_diarization || "",
     status: current_status,
-    showLoading,
-    showTransLag,
-    showDiaLag,
     isFinalizing: !!isFinalizing,
   });
   if (lastSignature === signature) {
@@ -397,36 +423,15 @@ function renderLinesWithBuffer(
 
       let currentLineText = item.text || "";
 
-      if (idx === lines.length - 1) {
-        if (!isFinalizing && item.speaker !== -2) {
-          if (remaining_time_transcription > 0) {
-            speakerLabel += `<span class="label_transcription"><span class="spinner"></span>Transcription lag <span id='timeInfo'><span class="lag-transcription-value">${fmt1(
-              remaining_time_transcription
-            )}</span>s</span></span>`;
-          }
-          if (buffer_diarization && remaining_time_diarization > 0) {
-            speakerLabel += `<span class="label_diarization"><span class="spinner"></span>Diarization lag<span id='timeInfo'><span class="lag-diarization-value">${fmt1(
-              remaining_time_diarization
-            )}</span>s</span></span>`;
-          }
-        }
-
+      if (isFinalizing && idx === lines.length - 1) {
         if (buffer_diarization) {
-          if (isFinalizing) {
-            currentLineText +=
-              (currentLineText.length > 0 && buffer_diarization.trim().length > 0 ? " " : "") + buffer_diarization.trim();
-          } else {
-            currentLineText += `<span class="buffer_diarization">${buffer_diarization}</span>`;
-          }
+          currentLineText +=
+            (currentLineText.length > 0 && buffer_diarization.trim().length > 0 ? " " : "") + buffer_diarization.trim();
         }
         if (buffer_transcription) {
-          if (isFinalizing) {
-            currentLineText +=
-              (currentLineText.length > 0 && buffer_transcription.trim().length > 0 ? " " : "") +
-              buffer_transcription.trim();
-          } else {
-            currentLineText += `<span class="buffer_transcription">${buffer_transcription}</span>`;
-          }
+          currentLineText +=
+            (currentLineText.length > 0 && buffer_transcription.trim().length > 0 ? " " : "") +
+            buffer_transcription.trim();
         }
       }
 
@@ -437,6 +442,40 @@ function renderLinesWithBuffer(
     .join("");
 
   linesTranscriptDiv.innerHTML = linesHtml;
+
+  let currentTranscriptionHtml = "";
+  if (!isFinalizing && (buffer_diarization || buffer_transcription)) {
+    let speakerLabel = "";
+    const lastLine = lines && lines.length > 0 ? lines[lines.length - 1] : null;
+    if (lastLine && lastLine.speaker > 0) {
+      speakerLabel = `<span id="speaker">Speaker ${lastLine.speaker}</span>`;
+    }
+
+    if (remaining_time_transcription > 0) {
+      speakerLabel += `<span class="label_transcription"><span class="spinner"></span>Transcription lag <span id='timeInfo'><span class="lag-transcription-value">${fmt1(
+        remaining_time_transcription
+      )}</span>s</span></span>`;
+    }
+    if (buffer_diarization && remaining_time_diarization > 0) {
+      speakerLabel += `<span class="label_diarization"><span class="spinner"></span>Diarization lag<span id='timeInfo'><span class="lag-diarization-value">${fmt1(
+        remaining_time_diarization
+      )}</span>s</span></span>`;
+    }
+
+    let currentLineText = "";
+    if (buffer_diarization) {
+      currentLineText += `<span class="buffer_diarization">${buffer_diarization}</span>`;
+    }
+    if (buffer_transcription) {
+      currentLineText += `<span class="buffer_transcription">${buffer_transcription}</span>`;
+    }
+    
+    if (currentLineText.trim().length > 0 || speakerLabel.length > 0) {
+        currentTranscriptionHtml = `<p>${speakerLabel}<br/><div class='textcontent'>${currentLineText}</div></p>`;
+    }
+  }
+  currentTranscriptionElement.innerHTML = currentTranscriptionHtml;
+
   window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
@@ -597,6 +636,7 @@ async function stopRecording() {
 async function toggleRecording() {
   if (!isRecording) {
     linesTranscriptDiv.innerHTML = "";
+    currentTranscriptionElement.innerHTML = "";
     transcriptActionsDiv.style.display = "none";
     if (waitingForStop) {
       console.log("Waiting for stop, early return");

@@ -131,8 +131,15 @@ def load_model(
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     if download_root is None:
-        default = os.path.join(os.path.expanduser("~"), ".cache")
-        download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
+        # Try to use model paths manager first
+        try:
+            from whisperlivekit.model_paths import get_model_paths_manager
+            model_paths = get_model_paths_manager()
+            download_root = model_paths.get_whisper_cache_dir()
+        except ImportError:
+            # Fallback to default behavior
+            default = os.path.join(os.path.expanduser("~"), ".cache")
+            download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
 
     if name in _MODELS:
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)

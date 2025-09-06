@@ -99,9 +99,20 @@ class FasterWhisperASR(ASRBase):
             model_size_or_path = modelsize
         else:
             raise ValueError("Either modelsize or model_dir must be set")
+        
         device = "auto" # Allow CTranslate2 to decide available device
         compute_type = "auto" # Allow CTranslate2 to decide faster compute type
-                              
+        
+        # If cache_dir is not specified, use the model paths manager
+        if cache_dir is None:
+            try:
+                from whisperlivekit.model_paths import get_model_paths_manager
+                model_paths = get_model_paths_manager()
+                cache_dir = model_paths.get_faster_whisper_cache_dir()
+                logger.debug(f"Using managed cache directory for faster-whisper: {cache_dir}")
+            except ImportError:
+                logger.warning("Could not import model_paths, using default cache")
+                cache_dir = None
 
         model = WhisperModel(
             model_size_or_path,
@@ -161,6 +172,20 @@ class MLXWhisper(ASRBase):
             logger.debug(f"Loading whisper model {modelsize}. You use mlx whisper, so {model_size_or_path} will be used.")
         else:
             raise ValueError("Either modelsize or model_dir must be set")
+
+        # If cache_dir is not specified, use the model paths manager  
+        if cache_dir is None:
+            try:
+                from whisperlivekit.model_paths import get_model_paths_manager
+                model_paths = get_model_paths_manager()
+                cache_dir = str(model_paths.get_path("mlx_whisper"))
+                logger.debug(f"Using managed cache directory for mlx-whisper: {cache_dir}")
+                
+                # Set MLX cache environment variable
+                import os
+                os.environ["MLX_CACHE_DIR"] = cache_dir
+            except ImportError:
+                logger.warning("Could not import model_paths, using default cache")
 
         self.model_size_or_path = model_size_or_path
         dtype = mx.float16

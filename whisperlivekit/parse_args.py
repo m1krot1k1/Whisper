@@ -1,21 +1,25 @@
 
 from argparse import ArgumentParser
+from whisperlivekit.config_loader import load_env_config
 
 def parse_args():
+    # Load environment configuration for defaults
+    env_config = load_env_config()
+    
     parser = ArgumentParser(description="Whisper FastAPI Online Server")
     parser.add_argument(
         "--host",
         type=str,
-        default="localhost",
+        default=env_config.get("host", "localhost"),
         help="The host address to bind the server to.",
     )
     parser.add_argument(
-        "--port", type=int, default=8000, help="The port number to bind the server to."
+        "--port", type=int, default=env_config.get("port", 8000), help="The port number to bind the server to."
     )
     parser.add_argument(
         "--warmup-file",
         type=str,
-        default=None,
+        default=env_config.get("warmup_file"),
         dest="warmup_file",
         help="""
         The path to a speech audio wav file to warm up Whisper so that the very first chunk processing is fast.
@@ -27,41 +31,42 @@ def parse_args():
     parser.add_argument(
         "--confidence-validation",
         action="store_true",
+        default=env_config.get("confidence_validation", False),
         help="Accelerates validation of tokens using confidence scores. Transcription will be faster but punctuation might be less accurate.",
     )
 
     parser.add_argument(
         "--diarization",
         action="store_true",
-        default=False,
+        default=env_config.get("diarization", False),
         help="Enable speaker diarization.",
     )
 
     parser.add_argument(
         "--punctuation-split",
         action="store_true",
-        default=False,
+        default=env_config.get("punctuation_split", False),
         help="Use punctuation marks from transcription to improve speaker boundary detection. Requires both transcription and diarization to be enabled.",
     )
 
     parser.add_argument(
         "--segmentation-model",
         type=str,
-        default="pyannote/segmentation-3.0",
+        default=env_config.get("segmentation_model", "pyannote/segmentation-3.0"),
         help="Hugging Face model ID for pyannote.audio segmentation model.",
     )
 
     parser.add_argument(
         "--embedding-model",
         type=str,
-        default="pyannote/embedding",
+        default=env_config.get("embedding_model", "pyannote/embedding"),
         help="Hugging Face model ID for pyannote.audio embedding model.",
     )
 
     parser.add_argument(
         "--diarization-backend",
         type=str,
-        default="sortformer",
+        default=env_config.get("diarization_backend", "sortformer"),
         choices=["sortformer", "diart"],
         help="The diarization backend to use.",
     )
@@ -75,77 +80,78 @@ def parse_args():
     parser.add_argument(
         "--min-chunk-size",
         type=float,
-        default=0.5,
+        default=env_config.get("min_chunk_size", 0.5),
         help="Minimum audio chunk size in seconds. It waits up to this time to do processing. If the processing takes shorter time, it waits, otherwise it processes the whole segment that was received by this time.",
     )
     
     parser.add_argument(
         "--model",
         type=str,
-        default="small",
+        default=env_config.get("model", "small"),
         help="Name size of the Whisper model to use (default: tiny). Suggested values: tiny.en,tiny,base.en,base,small.en,small,medium.en,medium,large-v1,large-v2,large-v3,large,large-v3-turbo. The model is automatically downloaded from the model hub if not present in model cache dir.",
     )
     
     parser.add_argument(
         "--model_cache_dir",
         type=str,
-        default=None,
+        default=env_config.get("model_cache_dir"),
         help="Overriding the default model cache dir where models downloaded from the hub are saved",
     )
     parser.add_argument(
         "--model_dir",
         type=str,
-        default=None,
+        default=env_config.get("model_dir"),
         help="Dir where Whisper model.bin and other files are saved. This option overrides --model and --model_cache_dir parameter.",
     )
     parser.add_argument(
         "--lan",
         "--language",
         type=str,
-        default="auto",
+        default=env_config.get("lan", "auto"),
         help="Source language code, e.g. en,de,cs, or 'auto' for language detection.",
     )
     parser.add_argument(
         "--task",
         type=str,
-        default="transcribe",
+        default=env_config.get("task", "transcribe"),
         choices=["transcribe", "translate"],
         help="Transcribe or translate.",
     )
     parser.add_argument(
         "--backend",
         type=str,
-        default="simulstreaming",
+        default=env_config.get("backend", "simulstreaming"),
         choices=["faster-whisper", "whisper_timestamped", "mlx-whisper", "openai-api", "simulstreaming"],
         help="Load only this backend for Whisper processing.",
     )
     parser.add_argument(
         "--no-vac",
         action="store_true",
-        default=False,
+        default=not env_config.get("vac", True),
         help="Disable VAC = voice activity controller.",
     )
     parser.add_argument(
-        "--vac-chunk-size", type=float, default=0.04, help="VAC sample size in seconds."
+        "--vac-chunk-size", type=float, default=env_config.get("vac_chunk_size", 0.04), help="VAC sample size in seconds."
     )
 
     parser.add_argument(
         "--no-vad",
         action="store_true",
+        default=not env_config.get("vad", True),
         help="Disable VAD (voice activity detection).",
     )
     
     parser.add_argument(
         "--buffer_trimming",
         type=str,
-        default="segment",
+        default=env_config.get("buffer_trimming", "segment"),
         choices=["sentence", "segment"],
         help='Buffer trimming strategy -- trim completed sentences marked with punctuation mark and detected by sentence segmenter, or the completed segments returned by Whisper. Sentence segmenter must be installed for "sentence" option.',
     )
     parser.add_argument(
         "--buffer_trimming_sec",
         type=float,
-        default=15,
+        default=env_config.get("buffer_trimming_sec", 15),
         help="Buffer trimming length threshold in seconds. If buffer length is longer, trimming sentence/segment is triggered.",
     )
     parser.add_argument(
@@ -154,10 +160,10 @@ def parse_args():
         dest="log_level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Set the log level",
-        default="DEBUG",
+        default=env_config.get("log_level", "DEBUG"),
     )
-    parser.add_argument("--ssl-certfile", type=str, help="Path to the SSL certificate file.", default=None)
-    parser.add_argument("--ssl-keyfile", type=str, help="Path to the SSL private key file.", default=None)
+    parser.add_argument("--ssl-certfile", type=str, help="Path to the SSL certificate file.", default=env_config.get("ssl_certfile"))
+    parser.add_argument("--ssl-keyfile", type=str, help="Path to the SSL private key file.", default=env_config.get("ssl_keyfile"))
 
     # SimulStreaming-specific arguments
     simulstreaming_group = parser.add_argument_group('SimulStreaming arguments (only used with --backend simulstreaming)')
@@ -165,7 +171,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--disable-fast-encoder",
         action="store_true",
-        default=False,
+        default=env_config.get("disable_fast_encoder", False),
         dest="disable_fast_encoder",
         help="Disable Faster Whisper or MLX Whisper backends for encoding (if installed). Slower but helpful when GPU memory is limited",
     )
@@ -173,7 +179,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--frame-threshold",
         type=int,
-        default=25,
+        default=env_config.get("frame_threshold", 25),
         dest="frame_threshold",
         help="Threshold for the attention-guided decoding. The AlignAtt policy will decode only until this number of frames from the end of audio. In frames: one frame is 0.02 seconds for large-v3 model.",
     )
@@ -182,14 +188,14 @@ def parse_args():
         "--beams",
         "-b",
         type=int,
-        default=1,
+        default=env_config.get("beams", 1),
         help="Number of beams for beam search decoding. If 1, GreedyDecoder is used.",
     )
     
     simulstreaming_group.add_argument(
         "--decoder",
         type=str,
-        default=None,
+        default=env_config.get("decoder_type"),
         dest="decoder_type",
         choices=["beam", "greedy"],
         help="Override automatic selection of beam or greedy decoder. If beams > 1 and greedy: invalid.",
@@ -198,7 +204,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--audio-max-len",
         type=float,
-        default=30.0,
+        default=env_config.get("audio_max_len", 30.0),
         dest="audio_max_len",
         help="Max length of the audio buffer, in seconds.",
     )
@@ -206,7 +212,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--audio-min-len",
         type=float,
-        default=0.0,
+        default=env_config.get("audio_min_len", 0.0),
         dest="audio_min_len",
         help="Skip processing if the audio buffer is shorter than this length, in seconds. Useful when the --min-chunk-size is small.",
     )
@@ -214,7 +220,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--cif-ckpt-path",
         type=str,
-        default=None,
+        default=env_config.get("cif_ckpt_path"),
         dest="cif_ckpt_path",
         help="The file path to the Simul-Whisper's CIF model checkpoint that detects whether there is end of word at the end of the chunk. If not, the last decoded space-separated word is truncated because it is often wrong -- transcribing a word in the middle. The CIF model adapted for the Whisper model version should be used. Find the models in https://github.com/backspacetg/simul_whisper/tree/main/cif_models . Note that there is no model for large-v3.",
     )
@@ -222,7 +228,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--never-fire",
         action="store_true",
-        default=False,
+        default=env_config.get("never_fire", False),
         dest="never_fire",
         help="Override the CIF model. If True, the last word is NEVER truncated, no matter what the CIF model detects. If False: if CIF model path is set, the last word is SOMETIMES truncated, depending on the CIF detection. Otherwise, if the CIF model path is not set, the last word is ALWAYS trimmed.",
     )
@@ -230,7 +236,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--init-prompt",
         type=str,
-        default=None,
+        default=env_config.get("init_prompt"),
         dest="init_prompt",
         help="Init prompt for the model. It should be in the target language.",
     )
@@ -238,7 +244,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--static-init-prompt",
         type=str,
-        default=None,
+        default=env_config.get("static_init_prompt"),
         dest="static_init_prompt",
         help="Do not scroll over this text. It can contain terminology that should be relevant over all document.",
     )
@@ -246,7 +252,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--max-context-tokens",
         type=int,
-        default=None,
+        default=env_config.get("max_context_tokens"),
         dest="max_context_tokens",
         help="Max context tokens for the model. Default is 0.",
     )
@@ -254,7 +260,7 @@ def parse_args():
     simulstreaming_group.add_argument(
         "--model-path",
         type=str,
-        default=None,
+        default=env_config.get("model_path"),
         dest="model_path",
         help="Direct path to the SimulStreaming Whisper .pt model file. Overrides --model for SimulStreaming backend.",
     )
@@ -270,8 +276,11 @@ def parse_args():
     args = parser.parse_args()
     
     args.transcription = not args.no_transcription
-    args.vad = not args.no_vad    
+    args.vad = not args.no_vad
+    args.vac = not args.no_vac
+    
     delattr(args, 'no_transcription')
     delattr(args, 'no_vad')
+    delattr(args, 'no_vac')
     
     return args

@@ -51,7 +51,16 @@ class CIFDownloader:
     
     def __init__(self, models_dir: str = "./models"):
         self.models_dir = Path(models_dir)
-        self.cif_dir = self.models_dir / "cif"
+        
+        # Try to use model paths manager
+        try:
+            from whisperlivekit.model_paths import get_model_paths_manager
+            model_paths = get_model_paths_manager(str(self.models_dir))
+            self.cif_dir = model_paths.get_path("cif")
+        except ImportError:
+            # Fallback to old behavior
+            self.cif_dir = self.models_dir / "cif"
+            
         self.cif_dir.mkdir(parents=True, exist_ok=True)
         
     def get_cif_model_for_whisper(self, whisper_model: str) -> Optional[str]:
@@ -209,6 +218,10 @@ class CIFDownloader:
 def main():
     """Command line interface for CIF downloader."""
     import argparse
+    from whisperlivekit.config_loader import load_env_config
+    
+    # Load environment config for defaults
+    env_config = load_env_config()
     
     parser = argparse.ArgumentParser(description="Download CIF models for WhisperLiveKit")
     parser.add_argument(
@@ -229,80 +242,8 @@ def main():
     parser.add_argument(
         "--models-dir", 
         type=str, 
-        default="./models",
-        help="Directory to store models (default: ./models)"
-    )
-    
-    args = parser.parse_args()
-    
-    downloader = CIFDownloader(args.models_dir)
-    
-    if args.all:
-        print("Downloading all CIF models...")
-        results = downloader.download_all_models(args.force)
-        
-        success_count = sum(1 for success in results.values() if success)
-        total_count = len(results)
-        
-        print(f"\nDownload complete: {success_count}/{total_count} models successfully downloaded")
-        
-        for model, success in results.items():
-            status = "✓" if success else "✗"
-            print(f"  {status} {model}")
-            
-    elif args.model:
-        print(f"Downloading CIF model for Whisper model: {args.model}")
-        cif_path = downloader.download_for_whisper_model(args.model, args.force)
-        
-        if cif_path:
-            print(f"✓ Successfully downloaded: {cif_path}")
-        else:
-            print(f"✗ Failed to download CIF model for {args.model}")
-            
-    else:
-        parser.print_help()
-
-    def _verify_checksum(self, file_path: str, expected_sha256: str) -> bool:
-        """Verify file checksum."""
-        try:
-            sha256_hash = hashlib.sha256()
-            with open(file_path, "rb") as f:
-                for chunk in iter(lambda: f.read(4096), b""):
-                    sha256_hash.update(chunk)
-            
-            actual_sha256 = sha256_hash.hexdigest()
-            return actual_sha256 == expected_sha256
-            
-        except Exception as e:
-            logger.error(f"Failed to verify checksum: {e}")
-            return False
-
-# Command line interface
-def main():
-    """Command line interface for CIF downloader."""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Download CIF models for WhisperLiveKit")
-    parser.add_argument(
-        "--all", 
-        action="store_true", 
-        help="Download all available CIF models"
-    )
-    parser.add_argument(
-        "--model", 
-        type=str,
-        help="Download CIF model for specific Whisper model (e.g., large-v2, small)"
-    )
-    parser.add_argument(
-        "--force", 
-        action="store_true", 
-        help="Force download even if file exists"
-    )
-    parser.add_argument(
-        "--models-dir", 
-        type=str, 
-        default="./models",
-        help="Directory to store models (default: ./models)"
+        default=env_config.get("model_cache_dir", "./models"),
+        help="Directory to store models (default: from .env.clone or ./models)"
     )
     
     args = parser.parse_args()
