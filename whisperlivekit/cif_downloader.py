@@ -243,7 +243,7 @@ def main():
         "--models-dir", 
         type=str, 
         default=env_config.get("model_cache_dir", "./models"),
-        help="Directory to store models (default: from .env.clone or ./models)"
+        help="Directory to store models (default: from .env or ./models)"
     )
     
     args = parser.parse_args()

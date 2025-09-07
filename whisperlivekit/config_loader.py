@@ -38,12 +38,12 @@ def str_to_float(value: Union[str, float], default: float = 0.0) -> float:
     except (ValueError, TypeError):
         return default
 
-def load_env_config(env_file: str = ".env.clone") -> Dict[str, Any]:
+def load_env_config(env_file: str = ".env") -> Dict[str, Any]:
     """
     Load configuration from .env file with proper type conversion.
     
     Args:
-        env_file: Path to env file (default: .env.clone)
+        env_file: Path to env file (default: .env)
         
     Returns:
         Dictionary with typed configuration values
@@ -206,7 +206,7 @@ def get_configuration(**kwargs) -> Dict[str, Any]:
     
     Priority (highest to lowest):
     1. Runtime kwargs
-    2. .env.clone file values  
+    2. .env file values  
     3. Minimal defaults
     
     Args:
@@ -218,7 +218,7 @@ def get_configuration(**kwargs) -> Dict[str, Any]:
     # Start with minimal defaults
     config = get_minimal_defaults()
     
-    # Load from .env.clone if available
+    # Load from .env if available
     env_config = load_env_config()
     config.update(env_config)
     

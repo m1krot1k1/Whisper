@@ -27,7 +27,7 @@ class TranscriptionEngine:
         # Initialize model paths manager first
         self.model_paths = get_model_paths_manager(kwargs.get('model_cache_dir', './models'))
 
-        # Load configuration from .env.clone and merge with runtime kwargs
+        # Load configuration from .env and merge with runtime kwargs
         config_dict = get_configuration(**kwargs)
 
         # Set up backend-specific cache directories
