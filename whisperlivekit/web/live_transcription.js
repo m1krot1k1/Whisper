@@ -95,37 +95,56 @@ function getTranscriptionText() {
     // Получаем текст из основного блока транскрипции
     const paragraphs = linesTranscriptDiv.querySelectorAll("p");
     paragraphs.forEach(p => {
-        const speakerSpan = p.querySelector("#speaker");
         const textContentDiv = p.querySelector(".textcontent");
-
         if (textContentDiv) {
-            let line = "";
-            if (speakerSpan) {
-                const speakerClone = speakerSpan.cloneNode(true);
-                const timeInfo = speakerClone.querySelector("#timeInfo");
-                if (timeInfo) {
-                    speakerClone.removeChild(timeInfo);
-                }
-                line += speakerClone.textContent.trim() + ": ";
-            }
-            line += textContentDiv.textContent.trim();
-            if (line.trim()) {
-                text += line + "\n";
+            const lineText = textContentDiv.textContent || textContentDiv.innerText || "";
+            if (lineText.trim()) {
+                text += lineText.trim() + "\n";
             }
         }
     });
     
-    // Добавляем текст из текущего элемента транскрипции
-    const currentText = currentTranscriptionElement.textContent.trim();
-    if (currentText) {
-        text += currentText + "\n";
+    // Если не нашли текст в .textcontent, попробуем получить весь текст и очистить его
+    if (!text.trim()) {
+        const allText = linesTranscriptDiv.textContent || linesTranscriptDiv.innerText || "";
+        if (allText.trim()) {
+            // Очищаем текст от служебной информации
+            const cleanedText = allText
+                .replace(/\d+\.\d+s/g, '') // Убираем время в секундах
+                .replace(/second\(s\) of audio are undergoing diarization/g, '') // Убираем сообщения о диаризации
+                .replace(/Transcription lag/g, '') // Убираем сообщения о задержке транскрипции
+                .replace(/Diarization lag/g, '') // Убираем сообщения о задержке диаризации
+                .replace(/Silence/g, '') // Убираем метки тишины
+                .replace(/Speaker \d+/g, (match) => match + ':') // Добавляем двоеточие после Speaker
+                .replace(/\s+/g, ' ') // Заменяем множественные пробелы на один
+                .trim();
+            
+            if (cleanedText) {
+                text += cleanedText + "\n";
+            }
+        }
     }
     
-    return text;
+    // Добавляем текст из текущего элемента транскрипции
+    const currentText = currentTranscriptionElement.textContent || currentTranscriptionElement.innerText || "";
+    if (currentText.trim()) {
+        text += currentText.trim() + "\n";
+    }
+    
+    return text.trim();
 }
 
 copyButton.addEventListener("click", () => {
     const textToCopy = getTranscriptionText();
+    console.log("Text to copy:", textToCopy);
+    console.log("Lines transcript div content:", linesTranscriptDiv.innerHTML);
+    console.log("Current transcription element content:", currentTranscriptionElement.innerHTML);
+    
+    if (!textToCopy || textToCopy.trim() === "") {
+        statusText.textContent = "Нет текста для копирования. Сначала запишите аудио.";
+        return;
+    }
+    
     navigator.clipboard.writeText(textToCopy).then(() => {
         statusText.textContent = "Транскрипция скопирована в буфер обмена!";
         setTimeout(() => {
@@ -141,6 +160,13 @@ copyButton.addEventListener("click", () => {
 
 downloadButton.addEventListener("click", () => {
     const textToDownload = getTranscriptionText();
+    console.log("Text to download:", textToDownload);
+    
+    if (!textToDownload || textToDownload.trim() === "") {
+        statusText.textContent = "Нет текста для скачивания. Сначала запишите аудио.";
+        return;
+    }
+    
     const blob = new Blob([textToDownload], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -150,6 +176,13 @@ downloadButton.addEventListener("click", () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    
+    statusText.textContent = "Файл транскрипции скачан!";
+    setTimeout(() => {
+        if (!isRecording && !waitingForStop) {
+            statusText.textContent = "Нажмите, чтобы начать транскрипцию";
+        }
+    }, 3000);
 });
 
 async function enumerateMicrophones() {
