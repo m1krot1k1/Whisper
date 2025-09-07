@@ -635,6 +635,7 @@ async function stopRecording() {
 
 async function toggleRecording() {
   if (!isRecording) {
+    // Очищаем текст только при новом начале записи
     linesTranscriptDiv.innerHTML = "";
     currentTranscriptionElement.innerHTML = "";
     transcriptActionsDiv.style.display = "none";
